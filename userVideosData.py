@@ -169,9 +169,9 @@ def load_all_posts(driver):
             driver.execute_script("window.scrollTo(0,document.body.scrollHeight)")
         except:
             pass
-        time.sleep(5)
+        time.sleep(3)
         elements = driver.find_elements("css selector", "[data-e2e='user-post-item']")
-        if previous_len == len(elements) or len(elements) >= 25:
+        if previous_len == len(elements) or len(elements) >= 250:
             return elements
         previous_len = len(elements)
 
