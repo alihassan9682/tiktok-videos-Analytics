@@ -9,7 +9,7 @@ from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.support.ui import WebDriverWait
 
 Users = [
-    "cartoonscovers",
+    "cls",
 ]
 
 USERS = [
@@ -119,25 +119,25 @@ USERS = [
 ]
 
 
-def get_urls_from_csv_folder(folder_path):
-    urls_per_file = {}
-    for file_name in os.listdir(folder_path):
-        if file_name.endswith(".csv"):
-            file_path = os.path.join(folder_path, file_name)
-            urls = []
-            with open(file_path, "r", newline="", encoding="utf-8") as csv_file:
-                csv_reader = csv.reader(csv_file)
-                for row in csv_reader:
-                    if row:  # Check if the row is not empty
-                        urls.append(row[0])
-            urls.pop(0)
-            urls_per_file[file_name.split(".csv")[0]] = urls
-            # urls_per_file.append({file_name.split(".csv")[0]: urls})
-    return urls_per_file
+# def get_urls_from_csv_folder(folder_path):
+#     urls_per_file = {}
+#     for file_name in os.listdir(folder_path):
+#         if file_name.endswith(".csv"):
+#             file_path = os.path.join(folder_path, file_name)
+#             urls = []
+#             with open(file_path, "r", newline="", encoding="utf-8") as csv_file:
+#                 csv_reader = csv.reader(csv_file)
+#                 for row in csv_reader:
+#                     if row:  # Check if the row is not empty
+#                         urls.append(row[0])
+#             urls.pop(0)
+#             urls_per_file[file_name.split(".csv")[0]] = urls
+#             # urls_per_file.append({file_name.split(".csv")[0]: urls})
+#     return urls_per_file
 
 
-folder_path = "userPostsDetails"
-urls_per_file = get_urls_from_csv_folder(folder_path)
+# folder_path = "userPostsDetails"
+# urls_per_file = get_urls_from_csv_folder(folder_path)
 
 
 def write_to_csv(data, directory, filename):
@@ -169,9 +169,27 @@ def load_all_posts(driver):
             driver.execute_script("window.scrollTo(0,document.body.scrollHeight)")
         except:
             pass
-        time.sleep(3)
+        time.sleep(5)
         elements = driver.find_elements("css selector", "[data-e2e='user-post-item']")
         if previous_len == len(elements) or len(elements) >= 250:
+            return elements
+        previous_len = len(elements)
+
+
+def load_all_comments(driver):
+    previous_len = len(
+        driver.find_elements(By.CLASS_NAME, "css-1i7ohvi-DivCommentItemContainer")
+    )
+    while True:
+        try:
+            driver.execute_script("window.scrollTo(0,document.body.scrollHeight)")
+        except:
+            pass
+        time.sleep(3)
+        elements = driver.find_elements(
+            By.CLASS_NAME, "css-1i7ohvi-DivCommentItemContainer"
+        )
+        if previous_len == len(elements):
             return elements
         previous_len = len(elements)
 
@@ -192,61 +210,54 @@ def get_user_post_details(driver):
                     "css selector", "[data-e2e='video-views']"
                 ).text
             except:
-                views_count = None
-
+                views_count = 'N/A'
             url = post.find_element(By.TAG_NAME, "a")
             url = url.get_attribute("href")
             driver.switch_to.new_window("tab")
             driver.get(url)
-            time.sleep(1)
+            time.sleep(3)
 
             try:
                 post_desc = driver.find_element(
                     "css selector", "[data-e2e='browse-video-desc']"
-                )
+                ).text
             except Exception as e:
-                post_desc = None
-
-            try:
-                comments = driver.find_elements(
-                    "css selector", "[data-e2e='comment-level-1']"
-                )
-            except Exception as e:
-                comments = None
+                post_desc = 'N/A'
 
             try:
                 digg_count = driver.find_element(
                     "css selector", "[data-e2e='like-count']"
-                )
+                ).text
             except Exception as e:
-                digg_count = None
+                digg_count = 'N/A'
             try:
                 comments_count = driver.find_element(
                     "css selector", "[data-e2e='comment-count']"
-                )
+                ).text
             except Exception as e:
-                comments_count = None
+                comments_count = 'N/A'
 
             try:
                 collect_count = driver.find_element(
                     "css selector", "[data-e2e='undefined-count']"
-                )
+                ).text
             except Exception as e:
-                collect_count = None
+                collect_count = 'N/A'
 
             try:
                 postedDate = driver.find_element(
                     "css selector", "[data-e2e='browser-nickname']"
                 )
+                postedDate = postedDate.text.split("\n")[-1]
             except Exception as e:
-                postedDate = None
+                postedDate = 'N/A'
 
             try:
                 share_count = driver.find_element(
                     "css selector", "[data-e2e='share-count']"
-                )
+                ).text
             except Exception as e:
-                share_count = None
+                share_count = 'N/A'
 
             try:
                 generatedByAi = driver.find_element(
@@ -256,24 +267,45 @@ def get_user_post_details(driver):
             except:
                 generatedByAi = -1
 
-            video_url = url
-
+            try:
+                comments = load_all_comments(driver)
+            except Exception as e:
+                comments = None
             comments = [i.text for i in comments]
-            # for comment in comments:
-            post_detail = {
-                "videoUrl": driver.current_url if driver.current_url else "",
-                "postedDate": postedDate.text.split("\n")[-1] if postedDate else "",
-                "postDesc": post_desc.text if post_desc else "",
-                "viewsCount": views_count if views_count else "",
-                "diggCount": digg_count.text if digg_count else "",
-                "commentsCount": comments_count.text if comments_count else "",
-                "collectCount": collect_count.text if collect_count else "",
-                "shareCount": share_count.text if collect_count else "",
-                "comments": comments,
-                "generated by AI": "NO" if generatedByAi == -1 else "YES",
-            }
-            # print(post_detail)
-            posts_details.append(post_detail)
+            if comments:
+                for comment in comments:
+                    post_detail = {
+                        "videoUrl": driver.current_url if driver.current_url else "",
+                        "postedDate": postedDate,
+                        "postDesc": post_desc,
+                        "viewsCount": views_count,
+                        "diggCount": digg_count,
+                        "commentsCount": comments_count,
+                        "collectCount": collect_count,
+                        "shareCount": share_count,
+                        "commentedDate": comment.split("\n")[2],
+                        "comments": comment.split("\n")[1],
+                        "generated by AI": "NO" if generatedByAi == -1 else "YES",
+                    }
+                # print(post_detail)
+                    posts_details.append(post_detail)
+            else:
+                post_detail = {
+                        "videoUrl": driver.current_url if driver.current_url else "",
+                        "postedDate": postedDate,
+                        "postDesc": post_desc,
+                        "viewsCount": views_count,
+                        "diggCount": digg_count,
+                        "commentsCount": comments_count,
+                        "collectCount": collect_count,
+                        "shareCount": share_count,
+                        "commentedDate": 'N/A',
+                        "comments": 'N/A',
+                        "generated by AI": "NO" if generatedByAi == -1 else "YES",
+                    }
+                # print(post_detail)
+                posts_details.append(post_detail)
+                        
             driver.close()
             driver.switch_to.window(original_window)
         except Exception as e:
