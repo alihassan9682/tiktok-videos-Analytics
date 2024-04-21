@@ -34,13 +34,28 @@ def continue_as_guest(driver):
 
 
 def fetch_all_users():
-    csv_file = "userCSVs\Ai_users.csv"
+    csv_file = r"userCSVs\USERS.csv"
     data = []
     with open(csv_file, "r", newline="") as file:
         csv_reader = csv.DictReader(file)
         for row in csv_reader:
-            data.append(row["username"])
+            data.append(row["users"])
     return data
+
+def delete_user(user_to_delete):
+    csv_file = r"userCSVs\USERS.csv"
+    rows = []
+    with open(csv_file, "r", newline="") as file:
+        csv_reader = csv.DictReader(file)
+        fieldnames = csv_reader.fieldnames
+        for row in csv_reader:
+            if row["users"] != user_to_delete:
+                rows.append(row)
+
+    with open(csv_file, "w", newline="") as file:
+        csv_writer = csv.DictWriter(file, fieldnames=fieldnames)
+        csv_writer.writeheader()
+        csv_writer.writerows(rows)
 
 
 def get_user_post_details(driver):
@@ -141,7 +156,7 @@ def get_user_post_details(driver):
 
 def get_tiktok_user():
     try:
-        driver = configure_undetected_chrome_driver(True)
+        driver = configure_undetected_chrome_driver()
         driver.maximize_window()
         try:
             # driver.get(url)

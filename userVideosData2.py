@@ -9,33 +9,16 @@ from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.support.ui import WebDriverWait
 
 
-def fetch_all_users():
-    csv_file = r"userCSVs\test-USERS.csv"
-    data = []
-    with open(csv_file, "r", newline="") as file:
-        csv_reader = csv.DictReader(file)
-        for row in csv_reader:
-            data.append(row["users"])
-    return data
-
-
-def delete_user(user_to_delete):
-    csv_file = r"userCSVs\test-USERS.csv"
-    rows = []
-    with open(csv_file, "r", newline="") as file:
-        csv_reader = csv.DictReader(file)
-        fieldnames = csv_reader.fieldnames
-        for row in csv_reader:
-            if row["users"] != user_to_delete:
-                rows.append(row)
-
-    with open(csv_file, "w", newline="") as file:
-        csv_writer = csv.DictWriter(file, fieldnames=fieldnames)
-        csv_writer.writeheader()
-        csv_writer.writerows(rows)
-
-
-USERS = fetch_all_users()
+USERS = [
+    "vikthor_stone",
+    "wanderingweb",
+    "wiwispiderm4noc",
+    "worldofwondev",
+    "xcwenty",
+    "xxheichouxx",
+    "zo6262",
+    "ai4klivewallpapers",
+]
 
 
 def write_to_csv(data, directory, filename):
@@ -69,7 +52,7 @@ def load_all_posts(driver):
             pass
         time.sleep(5)
         elements = driver.find_elements("css selector", "[data-e2e='user-post-item']")
-        if previous_len == len(elements) or len(elements) >= 100:
+        if previous_len == len(elements) or len(elements) >= 200:
             return elements
         previous_len = len(elements)
 
@@ -83,7 +66,7 @@ def load_all_comments(driver):
             driver.execute_script("window.scrollTo(0,document.body.scrollHeight)")
         except:
             pass
-
+        time.sleep(3)
         elements = driver.find_elements(
             By.CLASS_NAME, "css-1i7ohvi-DivCommentItemContainer"
         )
@@ -108,7 +91,7 @@ def get_user_post_details(driver, username):
                     "css selector", "[data-e2e='video-views']"
                 ).text
             except:
-                views_count = "N/A"
+                views_count = 'N/A'
             url = post.find_element(By.TAG_NAME, "a")
             url = url.get_attribute("href")
             driver.switch_to.new_window("tab")
@@ -120,27 +103,27 @@ def get_user_post_details(driver, username):
                     "css selector", "[data-e2e='browse-video-desc']"
                 ).text
             except Exception as e:
-                post_desc = "N/A"
+                post_desc = 'N/A'
 
             try:
                 digg_count = driver.find_element(
                     "css selector", "[data-e2e='like-count']"
                 ).text
             except Exception as e:
-                digg_count = "N/A"
+                digg_count = 'N/A'
             try:
                 comments_count = driver.find_element(
                     "css selector", "[data-e2e='comment-count']"
                 ).text
             except Exception as e:
-                comments_count = "N/A"
+                comments_count = 'N/A'
 
             try:
                 collect_count = driver.find_element(
                     "css selector", "[data-e2e='undefined-count']"
                 ).text
             except Exception as e:
-                collect_count = "N/A"
+                collect_count = 'N/A'
 
             try:
                 postedDate = driver.find_element(
@@ -148,14 +131,14 @@ def get_user_post_details(driver, username):
                 )
                 postedDate = postedDate.text.split("\n")[-1]
             except Exception as e:
-                postedDate = "N/A"
+                postedDate = 'N/A'
 
             try:
                 share_count = driver.find_element(
                     "css selector", "[data-e2e='share-count']"
                 ).text
             except Exception as e:
-                share_count = "N/A"
+                share_count = 'N/A'
 
             try:
                 generatedByAi = driver.find_element(
@@ -173,7 +156,7 @@ def get_user_post_details(driver, username):
             if comments:
                 for comment in comments:
                     post_detail = {
-                        "username": username,
+                        "username":username,
                         "videoUrl": driver.current_url if driver.current_url else "",
                         "postedDate": postedDate,
                         "postDesc": post_desc,
@@ -219,18 +202,19 @@ def get_tiktok_user_posts():
     try:
         driver = configure_undetected_chrome_driver()
         driver.maximize_window()
+        data = []
         for user in USERS:
             url = f"https://www.tiktok.com/@{user}"
             print(f"Scraping user: {user}")
             try:
                 driver.get(url)
-                user_posts = get_user_post_details(driver, user)
+                user_posts = get_user_post_details(driver,user)
                 if user_posts:
-                    write_to_csv(user_posts, "userPostsDetail-1000", f"{user}.csv")
-                    delete_user(user)                
+                    write_to_csv(user_posts, "userPostsDetail-updated", f"{user}.csv")
+                    data.extend(user_posts)
             except Exception as e:
                 print(f"Error while scraping user '{user}': {e}")
-        return True
+        return data
     except Exception as e:
         print(f"An error occurred: {e}")
 
