@@ -1,28 +1,22 @@
 import time
 
-from helpers import configure_webdriver, configure_undetected_chrome_driver
+from helpers import (
+    configure_webdriver,
+    configure_undetected_chrome_driver,
+    translate_text,
+    parse_date,
+    parse_value_with_zeros,
+    write_to_excel,
+    fetch_all_users,
+)
 
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.support.ui import WebDriverWait
-import csv
-import os
 
 
 def request_url(driver, url):
     driver.get(url)
-
-
-def write_to_csv(data, directory, filename):
-    fieldnames = list(data[0].keys())
-    if not os.path.exists(directory):
-        os.makedirs(directory)
-    filepath = os.path.join(directory, filename)
-    with open(filepath, "w", newline="", encoding="utf-8") as csvfile:
-        writer = csv.DictWriter(csvfile, fieldnames=fieldnames)
-        writer.writeheader()
-        for item in data:
-            writer.writerow(item)
 
 
 def continue_as_guest(driver):
@@ -33,34 +27,9 @@ def continue_as_guest(driver):
     return driver
 
 
-def fetch_all_users():
-    csv_file = r"userCSVs\USERS.csv"
-    data = []
-    with open(csv_file, "r", newline="") as file:
-        csv_reader = csv.DictReader(file)
-        for row in csv_reader:
-            data.append(row["users"])
-    return data
-
-def delete_user(user_to_delete):
-    csv_file = r"userCSVs\USERS.csv"
-    rows = []
-    with open(csv_file, "r", newline="") as file:
-        csv_reader = csv.DictReader(file)
-        fieldnames = csv_reader.fieldnames
-        for row in csv_reader:
-            if row["users"] != user_to_delete:
-                rows.append(row)
-
-    with open(csv_file, "w", newline="") as file:
-        csv_writer = csv.DictWriter(file, fieldnames=fieldnames)
-        csv_writer.writeheader()
-        csv_writer.writerows(rows)
-
-
 def get_user_post_details(driver):
     user_details = []
-    users = fetch_all_users()
+    users = fetch_all_users(r"userCSVs\AI-USERS-1.xlsx")
     url = f"https://www.tiktok.com/@{users[0]}"
     driver.get(url)
     try:
@@ -77,41 +46,41 @@ def get_user_post_details(driver):
                 "css selector", "[data-e2e='user-subtitle']"
             ).text
         except Exception as e:
-            nickname = "N/A"
+            nickname = ""
 
         try:
             signature = driver.find_element(
                 "css selector", "[data-e2e='user-bio']"
             ).text
         except Exception as e:
-            signature = "N/A"
+            signature = ""
 
         try:
             followingCount = driver.find_element(
                 "css selector", "[data-e2e='following-count']"
             ).text
         except Exception as e:
-            followingCount = "N/A"
+            followingCount = ""
 
         try:
             followerCount = driver.find_element(
                 "css selector", "[data-e2e='followers-count']"
             ).text
         except Exception as e:
-            followerCount = "N/A"
+            followerCount = ""
 
         try:
             heartCount = driver.find_element(
                 "css selector", "[data-e2e='likes-count']"
             ).text
         except Exception as e:
-            heartCount = "N/A"
+            heartCount = ""
 
         try:
             avatarThumb = driver.find_element(By.CLASS_NAME, "css-1zpj2q-ImgAvatar")
             avatarThumb = avatarThumb.get_attribute("src")
         except Exception as e:
-            avatarThumb = "N/A"
+            avatarThumb = ""
 
         try:
             youtube_channel_id = driver.find_element(
@@ -119,17 +88,18 @@ def get_user_post_details(driver):
             )
             youtube_channel_id = youtube_channel_id.get_attribute("href")
         except Exception as e:
-            youtube_channel_id = "N/A"
+            youtube_channel_id = ""
 
         user_detail = {
-            "profile_URL":url,
-            "UniqueID": user,
+            "id": "",
+            "uniqueId": user,
             "nickname": nickname,
             "avatarThumb": avatarThumb,
             "avatarMedium": avatarThumb,
             "avatarLarger": avatarThumb,
-            "signature ": signature,
+            "signature": signature,
             "verified ": False,
+            "secUid": "",
             "secret": False,
             "ftc": False,
             "relation": 0,
@@ -140,15 +110,17 @@ def get_user_post_details(driver):
             "privateAccount": False,
             "isADVirtual": False,
             "isUnderAge18": False,
-            "insta_id": "N/A",
-            "twitter_id": "N/A",
+            "ins_id": "",
+            "twitter_id": "",
             "youtube_channel_title": youtube_channel_id,
             "youtube_channel_id": youtube_channel_id,
-            "followingCount": followingCount,
-            "followerCount": followerCount,
-            "heartCount": heartCount,
+            "followingCount": parse_value_with_zeros(followingCount),
+            "followerCount": parse_value_with_zeros(followerCount),
+            "heartCount": parse_value_with_zeros(heartCount),
+            "videoCount ": "",
             "diggCount": 0,
-            "heart": heartCount,
+            "heart": parse_value_with_zeros(heartCount),
+            "profileURL": url,
         }
         user_details.append(user_detail)
     return user_details
@@ -162,7 +134,9 @@ def get_tiktok_user():
             # driver.get(url)
             user_porofiles = get_user_post_details(driver)
             if user_porofiles:
-                write_to_csv(user_porofiles, "userCSVs", f"Ai_users_data.csv")
+                write_to_excel(
+                    user_porofiles, "userCSVs", f"Ai_users_data-1000-new.xlsx"
+                )
                 # data.extend(user_posts)
         except Exception as e:
             print(f"Error : {e}")

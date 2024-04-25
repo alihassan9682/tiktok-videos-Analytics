@@ -1,53 +1,23 @@
 import os
 import csv
 import time
-
-from helpers import configure_webdriver, configure_undetected_chrome_driver
+from helpers import (
+    configure_webdriver,
+    configure_undetected_chrome_driver,
+    translate_text,
+    parse_date,
+    parse_value_with_zeros,
+    fetch_all_users,
+    write_to_excel,
+    delete_user,
+)
 
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.support.ui import WebDriverWait
 
 
-def fetch_all_users():
-    csv_file = r"userCSVs\test-USERS.csv"
-    data = []
-    with open(csv_file, "r", newline="") as file:
-        csv_reader = csv.DictReader(file)
-        for row in csv_reader:
-            data.append(row["users"])
-    return data
-
-
-def delete_user(user_to_delete):
-    csv_file = r"userCSVs\test-USERS.csv"
-    rows = []
-    with open(csv_file, "r", newline="") as file:
-        csv_reader = csv.DictReader(file)
-        fieldnames = csv_reader.fieldnames
-        for row in csv_reader:
-            if row["users"] != user_to_delete:
-                rows.append(row)
-
-    with open(csv_file, "w", newline="") as file:
-        csv_writer = csv.DictWriter(file, fieldnames=fieldnames)
-        csv_writer.writeheader()
-        csv_writer.writerows(rows)
-
-
-USERS = fetch_all_users()
-
-
-def write_to_csv(data, directory, filename):
-    fieldnames = list(data[0].keys())
-    if not os.path.exists(directory):
-        os.makedirs(directory)
-    filepath = os.path.join(directory, filename)
-    with open(filepath, "w", newline="", encoding="utf-8") as csvfile:
-        writer = csv.DictWriter(csvfile, fieldnames=fieldnames)
-        writer.writeheader()
-        for item in data:
-            writer.writerow(item)
+USERS = fetch_all_users(r"userCSVs\test-AI-USERS-1.xlsx")
 
 
 def continue_as_guest(driver):
@@ -108,7 +78,7 @@ def get_user_post_details(driver, username):
                     "css selector", "[data-e2e='video-views']"
                 ).text
             except:
-                views_count = "N/A"
+                views_count = ""
             url = post.find_element(By.TAG_NAME, "a")
             url = url.get_attribute("href")
             driver.switch_to.new_window("tab")
@@ -120,27 +90,27 @@ def get_user_post_details(driver, username):
                     "css selector", "[data-e2e='browse-video-desc']"
                 ).text
             except Exception as e:
-                post_desc = "N/A"
+                post_desc = ""
 
             try:
                 digg_count = driver.find_element(
                     "css selector", "[data-e2e='like-count']"
                 ).text
             except Exception as e:
-                digg_count = "N/A"
+                digg_count = ""
             try:
                 comments_count = driver.find_element(
                     "css selector", "[data-e2e='comment-count']"
                 ).text
             except Exception as e:
-                comments_count = "N/A"
+                comments_count = ""
 
             try:
                 collect_count = driver.find_element(
                     "css selector", "[data-e2e='undefined-count']"
                 ).text
             except Exception as e:
-                collect_count = "N/A"
+                collect_count = ""
 
             try:
                 postedDate = driver.find_element(
@@ -148,14 +118,14 @@ def get_user_post_details(driver, username):
                 )
                 postedDate = postedDate.text.split("\n")[-1]
             except Exception as e:
-                postedDate = "N/A"
+                postedDate = ""
 
             try:
                 share_count = driver.find_element(
                     "css selector", "[data-e2e='share-count']"
                 ).text
             except Exception as e:
-                share_count = "N/A"
+                share_count = ""
 
             try:
                 generatedByAi = driver.find_element(
@@ -175,33 +145,36 @@ def get_user_post_details(driver, username):
                     post_detail = {
                         "username": username,
                         "videoUrl": driver.current_url if driver.current_url else "",
-                        "postedDate": postedDate,
+                        "postedDate": parse_date(postedDate),
                         "postDesc": post_desc,
-                        "viewsCount": views_count,
-                        "diggCount": digg_count,
-                        "commentsCount": comments_count,
-                        "collectCount": collect_count,
-                        "shareCount": share_count,
-                        "commentedDate": comment.split("\n")[2],
+                        "viewsCount": parse_value_with_zeros(views_count),
+                        "diggCount": parse_value_with_zeros(digg_count),
+                        "commentsCount": len(comments),
+                        "collectCount": parse_value_with_zeros(collect_count),
+                        "shareCount": parse_value_with_zeros(share_count),
+                        "commentedDate": parse_date(comment.split("\n")[2]),
                         "comments": comment.split("\n")[1],
                         "generated by AI": "NO" if generatedByAi == -1 else "YES",
+                        "postDec-eng": translate_text(post_desc),
+                        "comments-eng": translate_text(comment.split("\n")[1]),
                     }
-                    # print(post_detail)
                     posts_details.append(post_detail)
             else:
                 post_detail = {
                     "username": username,
                     "videoUrl": driver.current_url if driver.current_url else "",
-                    "postedDate": postedDate,
+                    "postedDate":parse_date(postedDate),
                     "postDesc": post_desc,
-                    "viewsCount": views_count,
-                    "diggCount": digg_count,
-                    "commentsCount": comments_count,
-                    "collectCount": collect_count,
-                    "shareCount": share_count,
-                    "commentedDate": "N/A",
-                    "comments": "N/A",
+                    "viewsCount": parse_value_with_zeros(views_count),
+                    "diggCount": parse_value_with_zeros(digg_count),
+                    "commentsCount": "0",
+                    "collectCount": parse_value_with_zeros(collect_count),
+                    "shareCount": parse_value_with_zeros(share_count),
+                    "commentedDate": "",
+                    "comments": "",
                     "generated by AI": "NO" if generatedByAi == -1 else "YES",
+                    "postDec-eng": translate_text(post_desc),
+                    "comments-eng": "",
                 }
                 # print(post_detail)
                 posts_details.append(post_detail)
@@ -226,8 +199,8 @@ def get_tiktok_user_posts():
                 driver.get(url)
                 user_posts = get_user_post_details(driver, user)
                 if user_posts:
-                    write_to_csv(user_posts, "userPostsDetail-1000", f"{user}.csv")
-                    delete_user(user)                
+                    write_to_excel(user_posts, "userPostsDetail-1000-updated", f"{user}.xlsx")
+                    delete_user(user, r"userCSVs\test-AI-USERS-1.xlsx")
             except Exception as e:
                 print(f"Error while scraping user '{user}': {e}")
         return True

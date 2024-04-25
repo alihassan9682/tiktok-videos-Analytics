@@ -5,6 +5,119 @@ from selenium.webdriver.common.by import By
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.support.wait import WebDriverWait
 from webdriver_manager.chrome import ChromeDriverManager
+from datetime import datetime, timedelta
+import re
+from dateutil import parser
+from googletrans import Translator
+import pandas as pd
+import os
+
+
+def write_to_excel(data, directory, filename):
+    if not os.path.exists(directory):
+        os.makedirs(directory)
+    filepath = os.path.join(directory, filename)
+    df = pd.DataFrame(data)
+    df.to_excel(filepath, index=False)
+
+
+def delete_user(user_to_delete, excel_file):
+    df = pd.read_excel(excel_file)
+    df = df[df["users"] != user_to_delete]
+    df.to_excel(excel_file, index=False)
+
+
+def fetch_all_users(excel_file):
+    data = []
+    df = pd.read_excel(excel_file)
+    data = df["users"].tolist()
+    return data
+
+
+def parse_date(date_string):
+    formatted_date = ''
+    try:
+        # Regular expressions to match relative date and time terms
+        relative_datetime_regex = (
+            r"(\d+)\s+(day|week|month|year|hr|hour)s?\s+(ago|from now)"
+        )
+        match = re.match(relative_datetime_regex, date_string.strip(), re.IGNORECASE)
+
+        if match:
+            # Extract the relative time components
+            amount = int(match.group(1))
+            unit = match.group(2).lower()
+            direction = match.group(3).lower()
+
+            # Calculate the relative delta
+            delta = None
+            if unit in ["day", "hr", "hour"]:
+                delta = timedelta(days=amount)
+            elif unit == "week":
+                delta = timedelta(weeks=amount)
+            elif unit == "month":
+                delta = timedelta(days=amount * 30)  # Approximate months as 30 days
+            elif unit == "year":
+                delta = timedelta(days=amount * 365)  # Approximate years as 365 days
+
+            if delta:
+                # Calculate the actual date based on direction
+                if direction == "ago":
+                    parsed_date = datetime.now() - delta
+                else:
+                    parsed_date = datetime.now() + delta
+                formatted_date = (
+                    parsed_date.strftime("%d-%b-%y").lstrip("0").replace(" 0", " ")
+                )
+            else:
+                raise ValueError("Error: Invalid relative time unit.")
+
+        else:
+            parsed_date = parser.parse(date_string, fuzzy=True)
+            formatted_date = (
+                parsed_date.strftime("%d-%b-%y").lstrip("0").replace(" 0", " ")
+            )
+
+        return formatted_date
+    except ValueError as e:
+        pass
+        # print(str(e))
+        # print(date_string)
+        # print("Error: Date format is incorrect. Please provide a valid date.")
+
+
+def parse_value_with_zeros(value_string):
+    # Define a dictionary to map units to their multiplier
+    units = {
+        "K": 10**3,
+        "M": 10**6,
+        "B": 10**9,
+        "T": 10**12,
+    }
+
+    # Use regular expressions to extract the numerical value and unit
+    match = re.match(r"^(\d+(\.\d+)?)([KMBT])?$", value_string.strip(), re.IGNORECASE)
+
+    if match:
+        # Extract the numerical value and unit
+        numeric_value = float(match.group(1))
+        unit = match.group(3)
+
+        # If the unit exists, multiply the numerical value by the corresponding multiplier
+        if unit:
+            multiplier = units[unit.upper()]
+            numeric_value *= multiplier
+
+        # Convert the numeric value to an integer and return
+        return int(numeric_value)
+    else:
+        print("Error: Invalid value format. Please provide a valid value.")
+
+
+def translate_text(text, dest="en"):
+    translator = Translator()
+    translated = translator.translate(text, dest=dest)
+    return translated.text
 
 
 def configure_webdriver(
