@@ -115,9 +115,12 @@ def parse_value_with_zeros(value_string):
 
 
 def translate_text(text, dest="en"):
-    translator = Translator()
-    translated = translator.translate(text, dest=dest)
-    return translated.text
+    try:
+        translator = Translator()
+        translated = translator.translate(text, dest=dest)
+        return translated.text
+    except:
+        return text
 
 
 def configure_webdriver(
