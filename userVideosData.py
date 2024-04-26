@@ -39,7 +39,7 @@ def load_all_posts(driver):
             pass
         time.sleep(5)
         elements = driver.find_elements("css selector", "[data-e2e='user-post-item']")
-        if previous_len == len(elements) or len(elements) >= 100:
+        if previous_len == len(elements) or len(elements) >= 80:
             return elements
         previous_len = len(elements)
 
