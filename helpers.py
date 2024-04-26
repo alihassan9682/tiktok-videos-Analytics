@@ -111,7 +111,7 @@ def parse_value_with_zeros(value_string):
         # Convert the numeric value to an integer and return
         return int(numeric_value)
     else:
-        print("Error: Invalid value format. Please provide a valid value.")
+        return int(0)
 
 
 def translate_text(text, dest="en"):
